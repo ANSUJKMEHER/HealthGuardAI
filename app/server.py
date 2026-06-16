@@ -210,13 +210,23 @@ async def stream_events():
 def inject_failure(request: FailureRequest):
     """Inject a failure into the target application for testing."""
     if not engine.is_running:
-        raise HTTPException(status_code=400, detail="System is not running")
+        raise HTTPException(status_code=400, detail="System is not running. Click START first.")
 
     success = engine.system_monitor.inject_failure(request.type)
     if success:
-        return {"message": f"Injected failure: {request.type}"}
+        # Emit SSE event so the dashboard shows the injection in the Activity Feed
+        _on_engine_event({
+            "type": "anomaly_detected",
+            "data": {
+                "message": f"CHAOS INJECTED: {request.type}",
+                "failure_type": request.type,
+                "cpu_percent": "—",
+                "memory_mb": "—",
+            }
+        })
+        return {"message": f"Injected failure: {request.type}", "success": True, "type": request.type}
     else:
-        raise HTTPException(status_code=400, detail=f"Failed to inject: {request.type}")
+        raise HTTPException(status_code=502, detail=f"Could not reach target app to inject: {request.type}. Check target URL.")
 
 
 # ── Incidents ────────────────────────────────────────────────

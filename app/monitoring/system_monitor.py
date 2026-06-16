@@ -113,16 +113,25 @@ class SystemMonitor:
                 TARGET_ERROR_RATE.set(100.0)
                 TARGET_UP.set(0)
 
+    def _get_base_url(self) -> str:
+        """Extract base URL from target_url by stripping known path suffixes."""
+        url = self.target_url.rstrip("/")
+        # Strip /api or /api/... suffix if present
+        for suffix in ["/api", "/health", "/status"]:
+            idx = url.rfind(suffix)
+            if idx > 0:
+                return url[:idx]
+        return url
+
     def _fetch_target_metrics(self):
         """Fetch CPU/Memory metrics from the target's /system/metrics endpoint."""
+        if not self.target_url:
+            return
         try:
-            if "api" not in self.target_url:
-                return
-
-            base = self.target_url.split("/api")[0]
+            base = self._get_base_url()
             metrics_url = f"{base}/system/metrics"
 
-            with httpx.Client(timeout=2.0) as client:
+            with httpx.Client(timeout=5.0, follow_redirects=True) as client:
                 resp = client.get(metrics_url)
             if resp.status_code == 200:
                 data = resp.json()
@@ -131,8 +140,11 @@ class SystemMonitor:
                     self._memory_usage = data.get("memory_mb", 0.0)
                     TARGET_CPU.set(self._cpu_usage)
                     TARGET_MEMORY.set(self._memory_usage)
-        except Exception:
-            pass  # Metrics fetch failure is non-critical
+                    logger.debug("target_metrics_fetched", cpu=self._cpu_usage, mem=self._memory_usage)
+            else:
+                logger.warning("target_metrics_non_200", status=resp.status_code, url=metrics_url)
+        except Exception as e:
+            logger.warning("target_metrics_fetch_failed", error=str(e), url=self.target_url)
 
     def _add_log(self, level: str, message: str):
         """Add a log entry (called within lock)."""
@@ -166,15 +178,15 @@ class SystemMonitor:
             return False
 
         try:
-            base = self.target_url.split("/api")[0] if "api" in self.target_url else self.target_url.rsplit("/", 1)[0]
+            base = self._get_base_url()
             heal_url = f"{base}/chaos/heal"
 
             logger.info("attempting_remote_heal", url=heal_url)
 
-            with httpx.Client(timeout=5.0) as client:
-                client.post(heal_url)
+            with httpx.Client(timeout=10.0, follow_redirects=True) as client:
+                resp = client.post(heal_url)
 
-            self._add_log_safe("INFO", f"Sent HEAL command to: {heal_url}")
+            self._add_log_safe("INFO", f"Sent HEAL command to: {heal_url} (status: {resp.status_code})")
             return True
 
         except Exception as e:
@@ -195,13 +207,14 @@ class SystemMonitor:
         """Maps to heal_target for compatibility."""
         return self.heal_target()
 
-    def inject_failure(self, failure_type: str):
+    def inject_failure(self, failure_type: str) -> bool:
         """Inject a failure into the target system via its chaos endpoint."""
         if not self.target_url:
+            logger.warning("inject_failure_no_target_url")
             return False
 
         try:
-            base = self.target_url.split("/api")[0] if "api" in self.target_url else self.target_url.rsplit("/", 1)[0]
+            base = self._get_base_url()
 
             type_to_endpoint = {
                 "MEMORY_LEAK": "/chaos/memory/start",
@@ -221,11 +234,13 @@ class SystemMonitor:
             url = f"{base}{endpoint}"
             logger.info("injecting_failure", type=failure_type, url=url)
 
-            with httpx.Client(timeout=5.0) as client:
-                client.post(url)
+            with httpx.Client(timeout=10.0, follow_redirects=True) as client:
+                resp = client.post(url)
 
+            logger.info("failure_injected", type=failure_type, status=resp.status_code)
+            self._add_log_safe("WARN", f"CHAOS INJECTED: {failure_type}")
             return True
 
         except Exception as e:
-            logger.error("failure_injection_failed", error=str(e))
+            logger.error("failure_injection_failed", error=str(e), url=url if 'url' in dir() else 'unknown')
             return False
