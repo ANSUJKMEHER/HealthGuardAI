@@ -47,11 +47,12 @@ import psutil
 import os
 import threading
 
+_process = psutil.Process(os.getpid())
+
 def get_process_metrics():
-    process = psutil.Process(os.getpid())
     return {
-        "cpu_percent": process.cpu_percent(interval=None), 
-        "memory_mb": round(process.memory_info().rss / 1024 / 1024, 2)
+        "cpu_percent": _process.cpu_percent(interval=None), 
+        "memory_mb": round(_process.memory_info().rss / 1024 / 1024, 2)
     }
 
 # Global Chaos State
