@@ -114,17 +114,6 @@ function App() {
           onExportIncidents={exportIncidents}
         />
 
-        {targetUrl && targetUrl.includes('127.0.0.1') && (
-          <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded text-red-200 flex items-center gap-3 animate-pulse">
-            <AlertTriangle className="w-6 h-6 shrink-0 text-red-500" />
-            <div>
-              <strong className="block text-red-400 font-bold mb-1">CRITICAL CONFIGURATION ERROR</strong>
-              The backend is trying to monitor <code className="bg-black/50 px-1 rounded">127.0.0.1</code> (localhost) while running in the cloud! 
-              You MUST paste your actual <strong>Target App Render URL</strong> in the Target box above and click MONITOR, otherwise the system will be stuck at 100% Error Rate.
-            </div>
-          </div>
-        )}
-
         {/* Dashboard Grid */}
         <div className="grid grid-cols-12 gap-4 lg:gap-6">
 
