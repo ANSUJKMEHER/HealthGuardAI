@@ -55,6 +55,8 @@ class SystemMonitor:
 
     def set_target_url(self, url: str):
         """Update the monitoring target URL."""
+        if not url.startswith("http"):
+            url = "https://" + url
         self.target_url = url
         logger.info("target_url_updated", target_url=url)
 
