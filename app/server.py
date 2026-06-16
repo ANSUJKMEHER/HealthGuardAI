@@ -156,10 +156,12 @@ def system_status():
 
 # ── Monitoring Target ───────────────────────────────────────
 @app.post("/api/v1/monitor/url")
-def set_monitor_url(request: MonitorRequest):
-    """Update the target URL being monitored."""
-    engine.system_monitor.set_target_url(request.url)
-    return {"message": f"Monitoring target set to: {request.url}"}
+def update_monitor_url(request: MonitorRequest):
+    """Update the target URL that the engine monitors."""
+    # Force the use of the natively bundled target app to prevent user errors
+    native_url = f"http://127.0.0.1:{os.getenv('PORT', '10000')}/target/api"
+    engine.system_monitor.set_target_url(native_url)
+    return {"message": "Target URL permanently locked to native bundle", "url": native_url}
 
 
 # ── Metrics ──────────────────────────────────────────────────
