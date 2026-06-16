@@ -15,7 +15,7 @@ services:
       - key: LLM_PROVIDER
         value: fallback
       - key: CORS_ORIGINS
-        value: https://healthguard-ai.vercel.app,http://localhost:5173
+        value: https://health-guard-ai-dusky.vercel.app,http://localhost:5173
       - key: GROQ_API_KEY
         sync: false  # User must set this manually in Render dashboard
     healthCheckPath: /health
