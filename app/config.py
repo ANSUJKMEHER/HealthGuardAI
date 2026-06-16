@@ -23,7 +23,8 @@ class Settings(BaseSettings):
     groq_model: str = "llama-3.3-70b-versatile"
 
     # ── Target Application ───────────────────────────────────
-    target_url: str = "http://127.0.0.1:3000/api"
+    # Automatically point to the natively mounted TargetApp
+    target_url: str = f"http://127.0.0.1:{os.getenv('PORT', '10000')}/target/api"
 
     # ── Server ───────────────────────────────────────────────
     host: str = "0.0.0.0"

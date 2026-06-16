@@ -135,10 +135,12 @@ async def chaos_middleware(request: Request, call_next):
 
 
 # ── Main Endpoints ──────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 @app.get("/", response_class=HTMLResponse)
 def home():
     try:
-        return FileResponse("static/index.html")
+        return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
     except Exception:
         return HTMLResponse("<h1>CryptoPulse Engine Running</h1><p><a href='/api'>API</a> | <a href='/admin'>Admin</a></p>")
 
@@ -339,7 +341,7 @@ def admin_panel():
 # ── Static Files ────────────────────────────────────────────
 from fastapi.staticfiles import StaticFiles
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 except Exception:
     pass
 

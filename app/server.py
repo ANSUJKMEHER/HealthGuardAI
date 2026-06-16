@@ -23,6 +23,16 @@ from app.database.session import get_db_dependency, get_db
 from app.database.repositories import IncidentRepository
 from app.monitoring.metrics import get_prometheus_metrics, FIX_SUCCESS_RATE
 
+# Import TargetApp to bundle it directly
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+try:
+    from TargetApp.main import app as target_app
+except ImportError as e:
+    target_app = None
+    print(f"Failed to import TargetApp: {e}")
+
 import structlog
 
 # ── Setup ────────────────────────────────────────────────────
@@ -41,14 +51,19 @@ async def lifespan(app: FastAPI):
         engine.stop()
 
 
-# ── App ──────────────────────────────────────────────────────
+# ── App Definition ─────────────────────────────────────────────
 app = FastAPI(
-    title="HealthGuard AI",
-    description="Autonomous Infrastructure Sentinel — Detects, diagnoses, and fixes failures autonomously.",
+    title="HealthGuard AI - Control Plane",
+    description="Backend API for the autonomous healing engine.",
     version="2.0.0",
     lifespan=lifespan,
 )
 
+if target_app:
+    app.mount("/target", target_app)
+    logger.info("mounted_target_app", path="/target")
+
+# ── CORS ─────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
