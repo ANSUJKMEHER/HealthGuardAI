@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "healthguard-api-cloud"
+    scheme: https
+    # Render provides an environment variable for the host, but for simplicity, 
+    # you will replace this with your actual Render API URL before deploying
+    static_configs:
+      - targets: ["healthguard-api.onrender.com"] 
+    metrics_path: "/metrics/prometheus"

@@ -1,0 +1,37 @@
+# Render Blueprint — HealthGuard AI Backend
+# One-click deploy: https://render.com/deploy
+services:
+  # HealthGuard AI Backend (Control Plane)
+  - type: web
+    name: healthguard-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./healthguard.db
+      - key: LLM_PROVIDER
+        value: fallback
+      - key: CORS_ORIGINS
+        value: https://healthguard-ai.vercel.app,http://localhost:5173
+      - key: GROQ_API_KEY
+        sync: false  # User must set this manually in Render dashboard
+    healthCheckPath: /health
+    plan: free
+
+  # Target Application (CryptoPulse)
+  - type: web
+    name: healthguard-target
+    runtime: python
+    rootDir: ../TargetApp
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api
+    plan: free
+
+  # Prometheus Observability Server
+  - type: web
+    name: healthguard-prometheus
+    runtime: docker
+    rootDir: prometheus
+    plan: free
